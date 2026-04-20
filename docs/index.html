@@ -1,0 +1,1981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a1628">
+<link rel="manifest" href="manifest.json">
+<meta name="application-name" content="President">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="President">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>President</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@400;500;600&display=swap');
+
+  :root {
+    --bg:        #0a1628;
+    --surface:   #111e35;
+    --panel:     #16284a;
+    --border:    #1e3a5f;
+    --green:     #0d4f3c;
+    --green2:    #0f6b50;
+    --text:      #e8edf5;
+    --text-dim:  #7a93b8;
+    --gold:      #f0c040;
+    --gold2:     #d4a520;
+    --red:       #e03030;
+    --accent:    #2d6be4;
+    --accent2:   #1a4fa8;
+    --success:   #1a8a5a;
+    --card-bg:   #faf6ee;
+    --card-red:  #c0392b;
+    --card-blk:  #1a1a2e;
+    --radius:    12px;
+    --shadow:    0 4px 24px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%; width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    overflow: hidden;
+    user-select: none;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; flex-direction: column; height: 100vh; width: 100vw; overflow: hidden; }
+  .screen.active { display: flex; }
+
+  /* ══════════════════════════════════════════════
+     SETUP SCREEN
+  ══════════════════════════════════════════════ */
+  #setup-screen {
+    background: linear-gradient(160deg, #0a1628 0%, #0d2040 60%, #0a3020 100%);
+    overflow-y: auto;
+    padding: 0 0 32px 0;
+  }
+
+  .setup-header {
+    text-align: center;
+    padding: 36px 24px 20px;
+  }
+  .setup-header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.4rem;
+    color: var(--gold);
+    letter-spacing: 0.04em;
+    text-shadow: 0 2px 12px rgba(240,192,64,0.3);
+  }
+  .setup-header p {
+    color: var(--text-dim);
+    font-size: 0.9rem;
+    margin-top: 6px;
+  }
+
+  .setup-section {
+    margin: 0 16px 16px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .setup-section-title {
+    background: var(--panel);
+    padding: 10px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .player-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .player-row:last-child { border-bottom: none; }
+
+  .player-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .player-name-input {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    outline: none;
+    min-width: 0;
+  }
+  .player-name-input:focus { border-color: var(--accent); }
+
+  .type-btn {
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .type-btn.human { background: #1a3a6a; border-color: var(--accent); color: var(--text); }
+  .type-btn.ai    { background: #1a3a2a; border-color: #2a7a4a; color: #6adb9a; }
+
+  .diff-select {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 8px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.8rem;
+    outline: none;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  .remove-btn {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--text-dim);
+    font-size: 1.1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+  .remove-btn:hover { background: #3a1a1a; border-color: var(--red); color: var(--red); }
+
+  .add-player-btn {
+    width: calc(100% - 32px);
+    margin: 0 16px 16px;
+    padding: 12px;
+    background: transparent;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-dim);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .add-player-btn:hover { border-color: var(--accent); color: var(--text); }
+
+  .start-btn {
+    width: calc(100% - 32px);
+    margin: 8px 16px 0;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--gold2), var(--gold));
+    border: none;
+    border-radius: var(--radius);
+    color: #0a1628;
+    font-family: 'Playfair Display', serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    box-shadow: 0 4px 20px rgba(240,192,64,0.3);
+    transition: all 0.15s;
+  }
+  .start-btn:active { transform: scale(0.98); }
+
+  /* ══════════════════════════════════════════════
+     GAME SCREEN
+  ══════════════════════════════════════════════ */
+  #game-screen {
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Top bar */
+  .game-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .topbar-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--gold);
+  }
+  .topbar-status {
+    font-size: 0.8rem;
+    color: var(--text-dim);
+    text-align: right;
+  }
+  .topbar-menu {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: var(--text-dim);
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  /* Players strip */
+  .players-strip {
+    display: flex;
+    gap: 6px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    scrollbar-width: none;
+  }
+  .players-strip::-webkit-scrollbar { display: none; }
+
+  .player-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: var(--panel);
+    min-width: 64px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .player-chip.active {
+    border-color: var(--gold);
+    background: #1e2c10;
+    box-shadow: 0 0 12px rgba(240,192,64,0.2);
+  }
+  .player-chip.finished { opacity: 0.6; }
+  .chip-name {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 60px;
+  }
+  .chip-cards {
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .chip-badge {
+    font-size: 0.75rem;
+    margin-top: 2px;
+  }
+
+  /* Table area */
+  .table-area {
+    flex: 1;
+    background: radial-gradient(ellipse at center, #0d5040 0%, #083528 60%, #052018 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 12px;
+    position: relative;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .table-felt {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .table-label {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .table-cards {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    min-height: 90px;
+  }
+
+  .table-empty {
+    color: rgba(255,255,255,0.25);
+    font-size: 0.85rem;
+    font-style: italic;
+  }
+
+  .table-info {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.5);
+    text-align: center;
+  }
+  .table-info.reset { color: var(--gold); font-weight: 600; }
+
+  /* Pass phone prompt */
+  .pass-prompt {
+    position: absolute;
+    inset: 0;
+    background: rgba(10,22,40,0.96);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    z-index: 10;
+  }
+  .pass-prompt h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.4rem;
+    color: var(--gold);
+    text-align: center;
+  }
+  .pass-prompt p {
+    color: var(--text-dim);
+    text-align: center;
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+  .pass-prompt-btn {
+    padding: 14px 32px;
+    background: linear-gradient(135deg, var(--gold2), var(--gold));
+    border: none;
+    border-radius: var(--radius);
+    color: #0a1628;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* Hand area */
+  .hand-area {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 12px 12px;
+    flex-shrink: 0;
+  }
+
+  .hand-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .hand-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .hand-count {
+    font-size: 0.75rem;
+    color: var(--text-dim);
+  }
+
+  .hand-cards {
+    display: flex;
+    gap: 5px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    min-height: 88px;
+    align-items: flex-end;
+  }
+  .hand-cards::-webkit-scrollbar { display: none; }
+
+  /* Card widget */
+  .card {
+    flex-shrink: 0;
+    width: 56px;
+    height: 80px;
+    background: var(--card-bg);
+    border-radius: 8px;
+    border: 1.5px solid #ccc;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    position: relative;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    font-weight: 700;
+  }
+  .card.red { color: var(--card-red); }
+  .card.black { color: var(--card-blk); }
+  .card.selected {
+    transform: translateY(-12px);
+    border-color: var(--gold);
+    box-shadow: 0 6px 16px rgba(240,192,64,0.5);
+  }
+  .card.table-card {
+    cursor: default;
+    width: 52px;
+    height: 74px;
+  }
+  .card.qh { background: #fff0f0; border-color: var(--card-red); }
+
+  .card-rank {
+    font-size: 1.05rem;
+    line-height: 1;
+  }
+  .card-suit {
+    font-size: 0.85rem;
+    line-height: 1;
+  }
+
+  /* Action buttons */
+  .action-bar {
+    display: flex;
+    gap: 8px;
+    padding: 8px 12px 10px;
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 11px 8px;
+    border-radius: 10px;
+    border: none;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  .btn-play   { background: var(--success); color: #fff; }
+  .btn-pass   { background: var(--panel); color: var(--text); border: 1px solid var(--border); }
+  .btn-clear  { background: var(--panel); color: var(--text-dim); border: 1px solid var(--border); }
+  .btn-nudge  { background: #4a1a7a; color: #cc88ff; border: 1px solid #6a2a9a; flex: 0.7; }
+
+  /* Log panel */
+  .log-panel {
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    max-height: 72px;
+    overflow-y: auto;
+    padding: 6px 12px;
+    flex-shrink: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+  .log-entry {
+    font-size: 0.72rem;
+    color: var(--text-dim);
+    line-height: 1.6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .log-entry.highlight { color: var(--gold); }
+
+  /* ── Desktop layout: side panel ── */
+  @media (min-width: 700px) {
+    #game-screen { flex-direction: column; }
+
+    .game-main-row {
+      display: flex;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Left sidebar: players */
+    .players-sidebar {
+      display: flex;
+      flex-direction: column;
+      width: 160px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 10px 8px;
+      gap: 6px;
+    }
+    .players-strip { display: none; }  /* hide the top strip on desktop */
+
+    .sidebar-player {
+      padding: 8px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      transition: all 0.2s;
+    }
+    .sidebar-player.active {
+      border-color: var(--gold);
+      background: #1a2c10;
+      box-shadow: 0 0 10px rgba(240,192,64,0.15);
+    }
+    .sidebar-player.finished { opacity: 0.55; }
+    .sidebar-pname {
+      font-size: 0.82rem;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .sidebar-pcards {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      margin-top: 2px;
+    }
+    .sidebar-pbadge { font-size: 0.85rem; margin-top: 3px; }
+    .sidebar-title {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      padding: 0 2px 4px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 2px;
+    }
+
+    /* Centre: table + hand + buttons */
+    .game-centre {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      overflow: hidden;
+    }
+
+    /* Right sidebar: log */
+    .log-panel {
+      width: 240px;
+      flex-shrink: 0;
+      max-height: none;
+      border-top: none;
+      border-left: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 10px 12px;
+    }
+    .log-panel-title {
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      display: block;
+    }
+    .log-entry {
+      white-space: normal;
+      font-size: 0.71rem;
+    }
+  }
+
+  @media (max-width: 699px) {
+    .game-main-row { display: contents; }
+    .players-sidebar { display: none; }
+    .game-centre { display: contents; }
+    .log-panel-title { display: none; }
+  }
+
+  /* ══════════════════════════════════════════════
+     TRADE SCREEN
+  ══════════════════════════════════════════════ */
+  #trade-screen {
+    background: linear-gradient(160deg, #0a1628 0%, #0d2040 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .trade-card-box {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+  .trade-card-box h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .trade-subtitle {
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    margin-bottom: 24px;
+  }
+
+  .trade-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .trade-row:last-of-type { border-bottom: none; }
+
+  .trade-player {
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-align: left;
+    flex: 1;
+  }
+  .trade-arrow { color: var(--text-dim); font-size: 1rem; padding: 0 12px; }
+  .trade-card-label {
+    font-size: 1.1rem;
+    font-weight: 700;
+    min-width: 48px;
+    text-align: right;
+  }
+  .trade-card-label.red { color: var(--card-red); }
+  .trade-card-label.black { color: #aac; }
+
+  .countdown {
+    margin-top: 20px;
+    color: var(--text-dim);
+    font-size: 0.82rem;
+  }
+  .trade-continue-btn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--gold2), var(--gold));
+    border: none;
+    border-radius: var(--radius);
+    color: #0a1628;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
+  /* ══════════════════════════════════════════════
+     GAME OVER SCREEN
+  ══════════════════════════════════════════════ */
+  #gameover-screen {
+    background: linear-gradient(160deg, #0a1628 0%, #1a0d30 100%);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .gameover-box {
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    padding: 28px 24px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+  .gameover-box h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .gameover-subtitle {
+    color: var(--text-dim);
+    font-size: 0.82rem;
+    margin-bottom: 20px;
+  }
+
+  .ranking-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+  }
+  .ranking-row:last-of-type { border-bottom: none; }
+  .rank-medal { font-size: 1.3rem; width: 28px; text-align: center; }
+  .rank-name  { flex: 1; font-size: 0.95rem; font-weight: 600; }
+  .rank-title { font-size: 0.75rem; color: var(--text-dim); }
+
+  .gameover-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+  .btn-again {
+    flex: 1;
+    padding: 13px;
+    background: linear-gradient(135deg, var(--gold2), var(--gold));
+    border: none;
+    border-radius: var(--radius);
+    color: #0a1628;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-menu {
+    flex: 1;
+    padding: 13px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+  }
+
+  /* ── Log overlay (mobile full-screen) ── */
+  .log-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 50;
+    flex-direction: column;
+  }
+  .log-overlay.open { display: flex; }
+
+  .log-overlay-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .log-overlay-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--gold);
+  }
+  .log-overlay-close {
+    padding: 6px 14px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .log-overlay-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 16px;
+  }
+  .log-overlay-body .log-entry {
+    white-space: normal;
+    font-size: 0.82rem;
+    line-height: 1.7;
+    padding: 2px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  /* Log tab button — only on mobile */
+  .log-tab-btn {
+    display: none;
+  }
+  @media (max-width: 699px) {
+    .log-tab-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: none;
+      border-left: none;
+      border-right: none;
+      color: var(--text-dim);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      cursor: pointer;
+      width: 100%;
+      flex-shrink: 0;
+    }
+    .log-tab-btn:hover { color: var(--text); background: var(--panel); }
+    /* Hide the bottom log strip on mobile — replaced by tab button */
+    .log-panel { display: none; }
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    color: var(--text);
+    z-index: 100;
+    transition: transform 0.3s;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ══ SETUP SCREEN ══════════════════════════════════════════════ -->
+<div id="setup-screen" class="screen active">
+  <div class="setup-header">
+    <h1>♠ President ♥</h1>
+    <p>Set up your game</p>
+  </div>
+
+  <div class="setup-section">
+    <div class="setup-section-title">Players</div>
+    <div id="player-list"></div>
+  </div>
+
+  <button class="add-player-btn" onclick="addPlayer()">＋ Add Player</button>
+
+  <div class="setup-section">
+    <div class="setup-section-title">Options</div>
+    <div class="player-row" style="justify-content:space-between">
+      <span style="font-size:0.9rem">Number of decks</span>
+      <select id="deck-count" class="diff-select" style="width:70px">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="start-btn" onclick="startGame()">Start Game ▶</button>
+</div>
+
+<!-- ══ GAME SCREEN ════════════════════════════════════════════════ -->
+<div id="game-screen" class="screen">
+  <!-- Top bar (always visible) -->
+  <div class="game-topbar">
+    <div class="topbar-title">♠ President</div>
+    <div id="topbar-status" class="topbar-status"></div>
+    <button class="topbar-menu" onclick="showMenu()">Menu</button>
+  </div>
+
+  <!-- Mobile: players strip across top -->
+  <div class="players-strip" id="players-strip"></div>
+
+  <!-- Main row: [sidebar | centre | log] on desktop, stacked on mobile -->
+  <div class="game-main-row" style="flex:1;min-height:0;overflow:hidden;">
+
+    <!-- Desktop left sidebar: players -->
+    <div class="players-sidebar" id="players-sidebar">
+      <div class="sidebar-title">Players</div>
+    </div>
+
+    <!-- Centre column -->
+    <div class="game-centre">
+      <div class="table-area" id="table-area">
+        <div class="table-felt">
+          <div class="table-label">Table</div>
+          <div class="table-cards" id="table-cards">
+            <span class="table-empty">No cards played yet</span>
+          </div>
+          <div id="table-info" class="table-info"></div>
+        </div>
+        <!-- Pass phone overlay -->
+        <div class="pass-prompt" id="pass-prompt" style="display:none">
+          <h2>📱 Pass the Phone</h2>
+          <p id="pass-prompt-text">Hand the phone to the next player</p>
+          <button class="pass-prompt-btn" onclick="dismissPassPrompt()">I'm Ready ▶</button>
+        </div>
+      </div>
+
+      <div class="hand-area">
+        <div class="hand-header">
+          <div class="hand-title" id="hand-title">Your Hand</div>
+          <div class="hand-count" id="hand-count"></div>
+        </div>
+        <div class="hand-cards" id="hand-cards"></div>
+      </div>
+
+      <div class="action-bar">
+        <button class="btn btn-play"  id="btn-play"  onclick="onPlay()">▶ Play</button>
+        <button class="btn btn-pass"  id="btn-pass"  onclick="onPass()">⏭ Pass</button>
+        <button class="btn btn-clear" id="btn-clear" onclick="onClear()">✕</button>
+        <button class="btn btn-nudge" id="btn-nudge" onclick="onNudge()">⚡ Nudge</button>
+      </div>
+    </div>
+
+    <!-- Right sidebar: log (desktop) / bottom strip (mobile) -->
+    <div class="log-panel" id="log-panel">
+      <span class="log-panel-title">Game Log</span>
+    </div>
+
+  </div><!-- end game-main-row -->
+
+  <!-- Log tab button — mobile only, replaces bottom log strip -->
+  <button class="log-tab-btn" onclick="openLogOverlay()">
+    📋 Game Log &nbsp;·&nbsp; tap to view full history
+  </button>
+
+</div>
+
+<!-- ══ LOG OVERLAY (mobile full-screen) ══════════════════════════ -->
+<div class="log-overlay" id="log-overlay">
+  <div class="log-overlay-header">
+    <div class="log-overlay-title">📋 Game Log</div>
+    <button class="log-overlay-close" onclick="closeLogOverlay()">✕ Close</button>
+  </div>
+  <div class="log-overlay-body" id="log-overlay-body"></div>
+</div>
+
+<!-- ══ TRADE SCREEN ═══════════════════════════════════════════════ -->
+<div id="trade-screen" class="screen">
+  <div class="trade-card-box">
+    <h2>💱 Card Trade</h2>
+    <div class="trade-subtitle">Cards exchanged automatically before next game</div>
+    <div id="trade-rows"></div>
+    <div class="countdown" id="trade-countdown"></div>
+    <button class="trade-continue-btn" onclick="tradeFinish()">▶ Continue to Game</button>
+  </div>
+</div>
+
+<!-- ══ GAME OVER SCREEN ═══════════════════════════════════════════ -->
+<div id="gameover-screen" class="screen">
+  <div class="gameover-box">
+    <h2>Game Over</h2>
+    <div class="gameover-subtitle" id="gameover-game-num"></div>
+    <div id="ranking-list"></div>
+    <div class="gameover-btns">
+      <button class="btn-again" onclick="playAgain()">Play Again</button>
+      <button class="btn-menu"  onclick="goToMenu()">Menu</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════════════════════════════
+//  CARDS.JS
+// ═══════════════════════════════════════════════════════════════════
+const SUITS = { CLUBS:0, SPADES:1, DIAMONDS:2, HEARTS:3 };
+const SUIT_SYM  = ['♣','♠','♦','♥'];
+const SUIT_RED  = [false, false, true, true];
+const RANK_ORDER = [3,4,5,6,7,8,9,10,11,12,13,14,2];
+const RANK_NAME  = {3:'3',4:'4',5:'5',6:'6',7:'7',8:'8',9:'9',10:'10',11:'J',12:'Q',13:'K',14:'A',2:'2'};
+
+function cardKey(rank, suit) { return rank * 4 + suit; }
+
+function cardLabel(rank, suit) {
+  return RANK_NAME[rank] + SUIT_SYM[suit];
+}
+
+function isQH(rank, suit)  { return rank === 12 && suit === SUITS.HEARTS; }
+function isSeven(rank)     { return rank === 7; }
+function isRed(suit)       { return SUIT_RED[suit]; }
+
+function sortKey(rank, suit) {
+  if (isQH(rank, suit)) return 99 * 100 + 99;
+  return RANK_ORDER.indexOf(rank) * 4 + suit;
+}
+
+function cardGT(r1, s1, r2, s2) { return sortKey(r1,s1) >  sortKey(r2,s2); }
+function cardLE(r1, s1, r2, s2) { return sortKey(r1,s1) <= sortKey(r2,s2); }
+
+function makeDeck(nDecks) {
+  const deck = [];
+  for (let d = 0; d < nDecks; d++)
+    for (const suit of [0,1,2,3])
+      for (const rank of RANK_ORDER)
+        deck.push({rank, suit});
+  // Fisher-Yates shuffle
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+function dealCards(deck, nPlayers) {
+  const hands = Array.from({length: nPlayers}, () => []);
+  deck.forEach((card, i) => hands[i % nPlayers].push(card));
+  hands.forEach(h => h.sort((a,b) => sortKey(a.rank,a.suit) - sortKey(b.rank,b.suit)));
+  return hands;
+}
+
+function cardsEqual(a, b) { return a.rank === b.rank && a.suit === b.suit; }
+
+function removeCard(hand, card) {
+  const i = hand.findIndex(c => cardsEqual(c, card));
+  if (i !== -1) hand.splice(i, 1);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  AI ENGINE
+// ═══════════════════════════════════════════════════════════════════
+
+function groupByRank(hand) {
+  const groups = {};
+  for (const c of hand) {
+    if (!groups[c.rank]) groups[c.rank] = [];
+    groups[c.rank].push(c);
+  }
+  return groups;
+}
+
+function isValidPlay(rank, suit, topCard) {
+  if (isQH(rank, suit)) return true;
+  if (!topCard) return true;
+  if (isSeven(rank)) return true;  // 7 always allowed
+  return cardGT(rank, suit, topCard.rank, topCard.suit);
+}
+
+function allValidCombos(hand, reqCount, topCard) {
+  const results = [];
+  const groups = groupByRank(hand);
+  for (const [rankStr, cards] of Object.entries(groups)) {
+    if (cards.length < reqCount) continue;
+    // Generate combinations of size reqCount
+    const combos = combinations(cards, reqCount);
+    for (const combo of combos) {
+      const high = combo.reduce((best, c) =>
+        sortKey(c.rank,c.suit) > sortKey(best.rank,best.suit) ? c : best, combo[0]);
+      if (isValidPlay(high.rank, high.suit, topCard))
+        results.push(combo);
+    }
+  }
+  return results;
+}
+
+function combinations(arr, k) {
+  if (k === 1) return arr.map(x => [x]);
+  const result = [];
+  for (let i = 0; i <= arr.length - k; i++) {
+    const rest = combinations(arr.slice(i+1), k-1);
+    for (const r of rest) result.push([arr[i], ...r]);
+  }
+  return result;
+}
+
+function comboStrength(combo) {
+  return Math.max(...combo.map(c => sortKey(c.rank, c.suit)));
+}
+
+function aiChoosePlay(hand, reqCount, topCard, difficulty, cardsInHands, myPos) {
+  const startingRound = !topCard;
+  if (difficulty === 'Easy')   return aiEasy(hand, reqCount, topCard, startingRound);
+  if (difficulty === 'Medium') return aiMedium(hand, reqCount, topCard, startingRound);
+  return aiHard(hand, reqCount, topCard, startingRound, cardsInHands, myPos);
+}
+
+function aiEasy(hand, req, topCard, startingRound) {
+  if (startingRound) return [hand[Math.floor(Math.random() * hand.length)]];
+  const candidates = allValidCombos(hand, req, topCard);
+  if (!candidates.length) return null;
+  if (Math.random() < 0.3) return null;
+  return candidates[Math.floor(Math.random() * candidates.length)];
+}
+
+function aiMedium(hand, req, topCard, startingRound) {
+  if (startingRound) return mediumStartPlay(hand);
+  const candidates = allValidCombos(hand, req, topCard)
+    .filter(c => !c.some(x => isQH(x.rank, x.suit)));
+  if (candidates.length) {
+    candidates.sort((a,b) => comboStrength(a) - comboStrength(b));
+    return candidates[0];
+  }
+  const qh = hand.find(c => isQH(c.rank, c.suit));
+  if (qh && req === 1) return [qh];
+  return null;
+}
+
+function mediumStartPlay(hand) {
+  const groups = groupByRank(hand);
+  const ranked = Object.entries(groups)
+    .sort(([ra, ca], [rb, cb]) => {
+      const ia = RANK_ORDER.indexOf(parseInt(ra));
+      const ib = RANK_ORDER.indexOf(parseInt(rb));
+      if (ia !== ib) return ia - ib;
+      return cb.length - ca.length;
+    });
+  const [, cards] = ranked[0];
+  return cards.slice(0, Math.min(cards.length, 3));
+}
+
+function aiHard(hand, req, topCard, startingRound, cardsInHands, myPos) {
+  if (startingRound) return hardStartPlay(hand, cardsInHands, myPos);
+
+  const candidates = allValidCombos(hand, req, topCard)
+    .filter(c => !c.some(x => isQH(x.rank, x.suit)));
+
+  if (!candidates.length) {
+    const qh = hand.find(c => isQH(c.rank, c.suit));
+    if (qh && req === 1) return [qh];
+    return null;
+  }
+
+  candidates.sort((a,b) => comboStrength(a) - comboStrength(b));
+
+  // Finishing move
+  for (const combo of candidates)
+    if (hand.length - combo.length === 0) return combo;
+
+  // Someone near win
+  const oppCounts = cardsInHands.filter((_,i) => i !== myPos && cardsInHands[i] > 0);
+  if (oppCounts.some(n => n <= 3)) return candidates[candidates.length - 1];
+
+  // Play 7 to reset if holding low cards
+  const sevens = candidates.filter(c => c.every(x => isSeven(x.rank)));
+  if (sevens.length) {
+    const lowCount = hand.filter(c => !isSeven(c.rank) &&
+      RANK_ORDER.indexOf(c.rank) < RANK_ORDER.indexOf(7)).length;
+    if (lowCount >= 2) return sevens[0];
+  }
+
+  return candidates[0];
+}
+
+function hardStartPlay(hand, cardsInHands, myPos) {
+  const groups = groupByRank(hand);
+  // Check finishing play
+  for (const [, cards] of Object.entries(groups))
+    if (cards.length === hand.length) return cards;
+
+  const ranked = Object.entries(groups)
+    .sort(([ra, ca], [rb, cb]) => {
+      const ia = RANK_ORDER.indexOf(parseInt(ra));
+      const ib = RANK_ORDER.indexOf(parseInt(rb));
+      if (ia !== ib) return ia - ib;
+      return cb.length - ca.length;
+    })
+    .filter(([r, c]) => !(parseInt(r) === 12 && c.some(x => x.suit === SUITS.HEARTS)));
+
+  const playable = ranked.length ? ranked : Object.entries(groups);
+  return playable[0][1];
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  GAME STATE
+// ═══════════════════════════════════════════════════════════════════
+
+const Phase = { SETUP:'setup', PLAYING:'playing', GAME_OVER:'game_over' };
+
+let G = null;  // Global game state
+
+function createGame(playerDefs, nDecks) {
+  return {
+    players: playerDefs.map((p, i) => ({
+      name: p.name,
+      isHuman: p.isHuman,
+      difficulty: p.difficulty || 'Medium',
+      hand: [],
+      finishRank: null,
+      idx: i,
+    })),
+    nDecks,
+    phase: Phase.SETUP,
+    gameNumber: 1,
+    // Round state
+    tablePile: [],       // array of plays, each play = array of cards
+    activePlayers: [],
+    finishedOrder: [],
+    requiredCount: 1,
+    lastPlayedBy: null,
+    currentIdx: 0,
+    logs: [],
+    // Between games
+    lastPeasantIdx: null,
+  };
+}
+
+function topPlay(g) { return g.tablePile.length ? g.tablePile[g.tablePile.length-1] : null; }
+function topCard(g) { const tp = topPlay(g); return tp ? tp.reduce((best,c) =>
+  sortKey(c.rank,c.suit) > sortKey(best.rank,best.suit) ? c : best, tp[0]) : null; }
+
+function presidentIdx(g) { return g.finishedOrder.length ? g.finishedOrder[0] : null; }
+function peasantIdx(g)   { return g.finishedOrder.length >= 2 ? g.finishedOrder[g.finishedOrder.length-1] : null; }
+
+function gameLog(g, msg, highlight=false) {
+  g.logs.push({msg, highlight});
+  if (g.logs.length > 200) g.logs = g.logs.slice(-200);
+}
+
+function startNewGame(g) {
+  const deck = makeDeck(g.nDecks);
+  const hands = dealCards(deck, g.players.length);
+  g.players.forEach((p, i) => {
+    p.hand = hands[i];
+    p.finishRank = null;
+  });
+  g.tablePile = [];
+  g.activePlayers = g.players.map((_,i) => i);
+  g.finishedOrder = [];
+  g.requiredCount = 1;
+  g.lastPlayedBy = null;
+  g.phase = Phase.PLAYING;
+
+  // The player holding 3♣ always goes first (game 1).
+  // In game 2+, peasant goes first (they received 3♣ via trade OR just starts).
+  let starter = 0;
+  if (g.lastPeasantIdx !== null) {
+    // Game 2+: peasant starts
+    starter = g.activePlayers.includes(g.lastPeasantIdx) ? g.lastPeasantIdx : g.activePlayers[0];
+  } else {
+    // Game 1: find who holds 3♣
+    const three_clubs = g.players.findIndex(p =>
+      p.hand.some(c => c.rank === 3 && c.suit === SUITS.CLUBS));
+    if (three_clubs !== -1) starter = three_clubs;
+  }
+  g.currentIdx = starter;
+
+  gameLog(g, `══ Game ${g.gameNumber} ══  ${g.players[g.currentIdx].name} goes first`, true);
+}
+
+function canPlay(g, cards) {
+  if (!cards.length) return [false, 'No cards selected.'];
+
+  const ranks = new Set(cards.map(c => c.rank));
+  if (ranks.size > 1) return [false, 'All cards must share the same rank.'];
+
+  const count = cards.length;
+  const tp = topPlay(g);
+
+  if (!tp) return [true, ''];   // empty table — anything goes
+
+  if (count !== g.requiredCount) return [false, `Must play exactly ${g.requiredCount} card(s).`];
+
+  const tc = topCard(g);
+  const high = cards.reduce((best,c) => sortKey(c.rank,c.suit) > sortKey(best.rank,best.suit) ? c : best, cards[0]);
+
+  if (isQH(high.rank, high.suit)) return [true, ''];
+  if (isSeven(high.rank)) return [true, ''];    // 7 always valid
+  if (cardLE(high.rank, high.suit, tc.rank, tc.suit)) return [false, 'Must play a strictly higher card.'];
+
+  return [true, ''];
+}
+
+function playCards(g, cards) {
+  const [valid, reason] = canPlay(g, cards);
+  if (!valid) return reason;
+
+  const player = g.players[g.currentIdx];
+
+  if (!topPlay(g)) g.requiredCount = cards.length;
+
+  cards.forEach(c => removeCard(player.hand, c));
+  g.tablePile.push([...cards]);
+  g.lastPlayedBy = g.currentIdx;
+
+  const label = cards.map(c => cardLabel(c.rank, c.suit)).join(' ');
+  gameLog(g, `  ${player.isHuman ? '👤' : '🤖'} ${player.name}: ${label}`);
+
+  const high = cards.reduce((best,c) => sortKey(c.rank,c.suit) > sortKey(best.rank,best.suit) ? c : best, cards[0]);
+
+  // Q♥ — instant round win
+  if (isQH(high.rank, high.suit)) {
+    gameLog(g, `    ♛ Q♥ trump! ${player.name} wins the round!`, true);
+    markFinishedIfEmpty(g, g.currentIdx);
+    if (checkGameOver(g)) return 'game_over';
+    endRound(g);
+    return 'queen_wins';
+  }
+
+  markFinishedIfEmpty(g, g.currentIdx);
+
+  // 7 rule — reset table
+  if (isSeven(high.rank)) {
+    gameLog(g, `    7️⃣  7 played! Table resets — next player may play any card.`, true);
+    if (checkGameOver(g)) return 'game_over';
+    g.tablePile = [];
+    g.requiredCount = 1;
+    g.activePlayers = g.players.filter(p => p.hand.length > 0).map(p => p.idx);
+    advanceTurn(g);
+    return 'seven_played';
+  }
+
+  if (checkGameOver(g)) return 'game_over';
+
+  // Rank 2 — unbeatable
+  const tc = topCard(g);
+  if (tc && tc.rank === 2) { endRound(g); return 'unbeatable'; }
+
+  advanceTurn(g);
+  return 'ok';
+}
+
+function passTurn(g) {
+  const player = g.players[g.currentIdx];
+  gameLog(g, `  ${player.isHuman ? '👤' : '🤖'} ${player.name}: pass`);
+
+  g.activePlayers = g.activePlayers.filter(i => i !== g.currentIdx);
+
+  const remaining = g.activePlayers;
+  if (!remaining.length || (remaining.length === 1 && remaining[0] === g.lastPlayedBy)) {
+    if (checkGameOver(g)) return 'game_over';
+    endRound(g);
+    return 'round_end';
+  }
+
+  advanceTurn(g);
+  return 'ok';
+}
+
+function markFinishedIfEmpty(g, idx) {
+  const p = g.players[idx];
+  if (p.hand.length === 0 && p.finishRank === null) {
+    const rank = g.finishedOrder.length + 1;
+    p.finishRank = rank;
+    g.finishedOrder.push(idx);
+    const titles = {1:'🏆 President!', 2:'⭐ Vice-President'};
+    const title = titles[rank] || `#${rank} place`;
+    gameLog(g, `    🎉 ${p.name} finished — ${title}`, true);
+    g.activePlayers = g.activePlayers.filter(i => i !== idx);
+  }
+}
+
+function checkGameOver(g) {
+  const active = g.players.filter(p => p.hand.length > 0);
+  if (active.length <= 1) {
+    active.forEach(p => {
+      if (p.finishRank === null) {
+        const rank = g.finishedOrder.length + 1;
+        p.finishRank = rank;
+        g.finishedOrder.push(p.idx);
+        gameLog(g, `    💀 ${p.name} is the Peasant!`, true);
+      }
+    });
+    g.phase = Phase.GAME_OVER;
+    return true;
+  }
+  return false;
+}
+
+function endRound(g) {
+  const winnerIdx = g.lastPlayedBy;
+  if (winnerIdx === null) return;
+  const winner = g.players[winnerIdx];
+  gameLog(g, `  ── Round won by ${winner.name}. ──`);
+  g.tablePile = [];
+  g.requiredCount = 1;
+  g.lastPlayedBy = null;
+  g.activePlayers = g.players.filter(p => p.hand.length > 0).map(p => p.idx);
+
+  const starter = g.activePlayers.includes(winnerIdx) ? winnerIdx :
+    (g.activePlayers.length ? g.activePlayers[0] : winnerIdx);
+  g.currentIdx = starter;
+  if (g.activePlayers.length)
+    gameLog(g, `  ${g.players[starter].name} starts next round.`);
+}
+
+function advanceTurn(g) {
+  if (!g.activePlayers.length) { endRound(g); return; }
+  const seats = [...g.activePlayers].sort((a,b) => a-b);
+  const next = seats.find(s => s > g.currentIdx) ?? seats[0];
+  g.currentIdx = next;
+}
+
+function startNextGameWithTrade(g) {
+  const presIdx    = presidentIdx(g);
+  const peasIdx    = peasantIdx(g);
+
+  if (presIdx === null || peasIdx === null) {
+    g.gameNumber++;
+    startNewGame(g);
+    return null;
+  }
+
+  g.lastPeasantIdx = peasIdx;
+  g.gameNumber++;
+  startNewGame(g);   // deals fresh hands
+
+  const pres    = g.players[presIdx];
+  const peasant = g.players[peasIdx];
+  const presGives    = [...pres.hand].sort((a,b) => sortKey(a.rank,a.suit) - sortKey(b.rank,b.suit))[0];
+  const peasantGives = [...peasant.hand].sort((a,b) => sortKey(b.rank,b.suit) - sortKey(a.rank,a.suit))[0];
+
+  removeCard(pres.hand, presGives);
+  peasant.hand.push(presGives);
+  removeCard(peasant.hand, peasantGives);
+  pres.hand.push(peasantGives);
+  pres.hand.sort((a,b) => sortKey(a.rank,a.suit) - sortKey(b.rank,b.suit));
+  peasant.hand.sort((a,b) => sortKey(a.rank,a.suit) - sortKey(b.rank,b.suit));
+
+  gameLog(g, `  💱 ${peasant.name} gave ${cardLabel(peasantGives.rank,peasantGives.suit)} → ${pres.name}`, true);
+  gameLog(g, `  💱 ${pres.name} gave ${cardLabel(presGives.rank,presGives.suit)} → ${peasant.name}`, true);
+
+  return { presIdx, peasIdx, presGives, peasantGives,
+           presName: pres.name, peasantName: peasant.name };
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  UI STATE
+// ═══════════════════════════════════════════════════════════════════
+
+let selectedCards = [];
+let gameOverShown = false;
+let aiTimer = null;
+let tradeCountdownTimer = null;
+let gameOverTimer = null;
+let tradeCountdown = 4;
+let gameOverCountdown = 4;
+
+// Which human players have been "passed to" — used for pass-phone flow
+let awaitingHuman = false;   // true when we're waiting for human to tap Ready
+
+// ── Setup screen ────────────────────────────────────────────────────
+
+const defaultPlayers = [
+  {name:'You',   isHuman:true,  difficulty:'Medium'},
+  {name:'Bot 1', isHuman:false, difficulty:'Medium'},
+  {name:'Bot 2', isHuman:false, difficulty:'Medium'},
+  {name:'Bot 3', isHuman:false, difficulty:'Hard'},
+];
+
+let setupPlayers = defaultPlayers.map(p => ({...p}));
+
+function renderSetup() {
+  const list = document.getElementById('player-list');
+  list.innerHTML = '';
+  setupPlayers.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'player-row';
+    row.innerHTML = `
+      <div class="player-num">${i+1}</div>
+      <input class="player-name-input" value="${p.name}"
+             oninput="setupPlayers[${i}].name=this.value" maxlength="12">
+      <button class="type-btn ${p.isHuman?'human':'ai'}"
+              onclick="toggleType(${i})">${p.isHuman?'👤 Human':'🤖 AI'}</button>
+      <select class="diff-select" ${p.isHuman?'disabled':''}
+              onchange="setupPlayers[${i}].difficulty=this.value">
+        ${['Easy','Medium','Hard'].map(d =>
+          `<option value="${d}" ${p.difficulty===d?'selected':''}>${d}</option>`).join('')}
+      </select>
+      ${setupPlayers.length > 2 ?
+        `<button class="remove-btn" onclick="removePlayer(${i})">×</button>` : ''}
+    `;
+    list.appendChild(row);
+  });
+}
+
+function toggleType(i) {
+  setupPlayers[i].isHuman = !setupPlayers[i].isHuman;
+  renderSetup();
+}
+
+function addPlayer() {
+  if (setupPlayers.length >= 8) { showToast('Maximum 8 players'); return; }
+  setupPlayers.push({name:`Player ${setupPlayers.length+1}`, isHuman:false, difficulty:'Medium'});
+  renderSetup();
+}
+
+function removePlayer(i) {
+  if (setupPlayers.length <= 2) { showToast('Need at least 2 players'); return; }
+  setupPlayers.splice(i, 1);
+  renderSetup();
+}
+
+function startGame() {
+  const names = setupPlayers.map(p => p.name.trim() || `Player ${setupPlayers.indexOf(p)+1}`);
+  const nDecks = parseInt(document.getElementById('deck-count').value);
+  G = createGame(setupPlayers.map((p,i) => ({...p, name:names[i]})), nDecks);
+  startNewGame(G);
+  gameOverShown = false;
+  selectedCards = [];
+  showScreen('game-screen');
+  renderGame();
+  scheduleAI();
+}
+
+// ── Game screen ──────────────────────────────────────────────────────
+
+function renderGame() {
+  if (!G) return;
+  renderTopBar();
+  renderPlayersStrip();
+  renderTable();
+  renderHand();
+  renderButtons();
+  renderLog();
+}
+
+function renderTopBar() {
+  const p = G.players[G.currentIdx];
+  document.getElementById('topbar-status').textContent =
+    `Game ${G.gameNumber}  ·  ${p.isHuman ? '👤' : '🤖'} ${p.name}'s turn`;
+}
+
+function renderPlayersStrip() {
+  const last = G.players.length;
+
+  function getBadge(p) {
+    if (p.finishRank === 1)    return '👑';
+    if (p.finishRank === 2)    return '⭐';
+    if (p.finishRank === last)  return '💀';
+    if (p.finishRank !== null) return `#${p.finishRank}`;
+    return '';
+  }
+
+  // Mobile strip (top)
+  const strip = document.getElementById('players-strip');
+  strip.innerHTML = '';
+  G.players.forEach((p, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'player-chip' +
+      (i === G.currentIdx ? ' active' : '') +
+      (p.finishRank !== null ? ' finished' : '');
+    const badge = getBadge(p);
+    chip.innerHTML = `
+      <div class="chip-name">${p.name}</div>
+      <div class="chip-cards">${p.hand.length} cards</div>
+      ${badge ? `<div class="chip-badge">${badge}</div>` : ''}
+    `;
+    strip.appendChild(chip);
+  });
+
+  // Desktop sidebar (left)
+  const sidebar = document.getElementById('players-sidebar');
+  if (!sidebar) return;
+  sidebar.innerHTML = '<div class="sidebar-title">Players</div>';
+  G.players.forEach((p, i) => {
+    const div = document.createElement('div');
+    div.className = 'sidebar-player' +
+      (i === G.currentIdx ? ' active' : '') +
+      (p.finishRank !== null ? ' finished' : '');
+    const badge = getBadge(p);
+    const icon = p.isHuman ? '👤' : '🤖';
+    const diff = !p.isHuman ? ` <span style="font-size:0.65rem;color:var(--text-dim)">[${p.difficulty[0]}]</span>` : '';
+    div.innerHTML = `
+      <div class="sidebar-pname">${icon} ${p.name}${diff}</div>
+      <div class="sidebar-pcards">${p.hand.length} cards</div>
+      ${badge ? `<div class="sidebar-pbadge">${badge}</div>` : ''}
+    `;
+    sidebar.appendChild(div);
+  });
+}
+
+function renderTable() {
+  const tableCards = document.getElementById('table-cards');
+  const tableInfo  = document.getElementById('table-info');
+  tableCards.innerHTML = '';
+
+  const tp = topPlay(G);
+  if (!tp) {
+    if (G.lastPlayedBy !== null) {
+      tableCards.innerHTML = `<span class="table-empty">7️⃣ Table reset — play any card</span>`;
+      tableInfo.textContent = '';
+      tableInfo.className = 'table-info reset';
+    } else {
+      tableCards.innerHTML = `<span class="table-empty">No cards played yet</span>`;
+      tableInfo.textContent = '';
+      tableInfo.className = 'table-info';
+    }
+    return;
+  }
+
+  // Show last 4 plays
+  const showPiles = G.tablePile.slice(-4);
+  showPiles.forEach(play => {
+    const group = document.createElement('div');
+    group.style.cssText = 'display:flex;gap:3px;align-items:center;';
+    play.forEach(c => group.appendChild(makeCardEl(c.rank, c.suit, false, true)));
+    tableCards.appendChild(group);
+  });
+
+  tableInfo.textContent = `Required: ${G.requiredCount} card(s)`;
+  tableInfo.className = 'table-info';
+}
+
+function renderHand() {
+  const current = G.players[G.currentIdx];
+  const isHumanTurn = current.isHuman && G.phase === Phase.PLAYING;
+
+  document.getElementById('hand-title').textContent = `${current.name}'s Hand`;
+  document.getElementById('hand-count').textContent = `(${current.hand.length} cards)`;
+
+  const handCards = document.getElementById('hand-cards');
+  handCards.innerHTML = '';
+
+  current.hand.forEach(card => {
+    const el = makeCardEl(card.rank, card.suit, isHumanTurn);
+    const isSel = selectedCards.some(c => cardsEqual(c, card));
+    if (isSel) el.classList.add('selected');
+    if (isHumanTurn) {
+      el.addEventListener('click', () => toggleCard(card));
+    }
+    handCards.appendChild(el);
+  });
+}
+
+function makeCardEl(rank, suit, interactive=false, isTable=false) {
+  const el = document.createElement('div');
+  el.className = 'card' + (isRed(suit) ? ' red' : ' black') +
+    (isTable ? ' table-card' : '') +
+    (isQH(rank, suit) ? ' qh' : '');
+  el.innerHTML = `<div class="card-rank">${RANK_NAME[rank]}</div>
+                  <div class="card-suit">${SUIT_SYM[suit]}</div>`;
+  if (interactive) el.style.cursor = 'pointer';
+  return el;
+}
+
+function renderButtons() {
+  const isHuman = G.phase === Phase.PLAYING && G.players[G.currentIdx].isHuman;
+  document.getElementById('btn-play').disabled  = !isHuman;
+  document.getElementById('btn-pass').disabled  = !isHuman;
+  document.getElementById('btn-clear').disabled = !isHuman;
+}
+
+function renderLog() {
+  // Desktop side panel — show last 60 entries
+  const panel = document.getElementById('log-panel');
+  if (panel) {
+    // Keep the title span
+    const titleEl = panel.querySelector('.log-panel-title');
+    panel.innerHTML = '';
+    if (titleEl) panel.appendChild(titleEl);
+    G.logs.slice(-60).forEach(entry => {
+      const div = document.createElement('div');
+      div.className = 'log-entry' + (entry.highlight ? ' highlight' : '');
+      div.textContent = entry.msg;
+      panel.appendChild(div);
+    });
+    panel.scrollTop = panel.scrollHeight;
+  }
+}
+
+function toggleCard(card) {
+  const idx = selectedCards.findIndex(c => cardsEqual(c, card));
+  if (idx !== -1) selectedCards.splice(idx, 1);
+  else selectedCards.push(card);
+  renderHand();
+}
+
+// ── Actions ──────────────────────────────────────────────────────────
+
+function onPlay() {
+  if (!selectedCards.length) { showToast('Select cards to play'); return; }
+  const result = playCards(G, selectedCards);
+  selectedCards = [];
+  handleResult(result);
+}
+
+function onPass() {
+  const result = passTurn(G);
+  selectedCards = [];
+  handleResult(result);
+}
+
+function onClear() {
+  selectedCards = [];
+  renderHand();
+}
+
+function onNudge() {
+  if (G.phase !== Phase.PLAYING) return;
+  if (G.players[G.currentIdx].isHuman) {
+    showToast("It's your turn! Select cards and press Play.");
+    return;
+  }
+  doOneAIStep();
+  renderGame();
+  scheduleAI();
+}
+
+function handleResult(result) {
+  if (result === 'game_over') {
+    renderGame();
+    showGameOver();
+  } else if (['ok','queen_wins','unbeatable','round_end','seven_played'].includes(result)) {
+    renderGame();
+    checkPassPhone();
+  } else {
+    showToast(result);
+    renderGame();
+  }
+}
+
+// ── Pass phone flow ───────────────────────────────────────────────────
+
+function checkPassPhone() {
+  if (G.phase === Phase.GAME_OVER) { showGameOver(); return; }
+  if (!G.players[G.currentIdx].isHuman) {
+    scheduleAI();
+    return;
+  }
+  // It's a human's turn — do we need to pass the phone?
+  const humans = G.players.filter(p => p.isHuman);
+  if (humans.length <= 1) return;  // Only one human, no need to pass
+
+  // Show pass prompt
+  const p = G.players[G.currentIdx];
+  document.getElementById('pass-prompt-text').textContent =
+    `It's ${p.name}'s turn. Hand the phone to ${p.name}.`;
+  document.getElementById('pass-prompt').style.display = 'flex';
+}
+
+function dismissPassPrompt() {
+  document.getElementById('pass-prompt').style.display = 'none';
+  renderHand();
+}
+
+// ── AI loop ──────────────────────────────────────────────────────────
+
+function scheduleAI() {
+  if (aiTimer) clearTimeout(aiTimer);
+  if (G.phase !== Phase.PLAYING) return;
+  if (G.players[G.currentIdx].isHuman) return;
+  aiTimer = setTimeout(runAITurns, 400);
+}
+
+function runAITurns() {
+  if (!G || G.phase !== Phase.PLAYING) return;
+  let steps = 0;
+  while (G.phase === Phase.PLAYING && !G.players[G.currentIdx].isHuman && steps < 200) {
+    if (!doOneAIStep()) break;
+    steps++;
+  }
+  renderGame();
+  if (G.phase === Phase.GAME_OVER) { showGameOver(); return; }
+  checkPassPhone();
+}
+
+function doOneAIStep() {
+  if (G.currentIdx !== undefined && !G.activePlayers.includes(G.currentIdx)) {
+    if (G.lastPlayedBy !== null) endRound(G);
+    else if (G.activePlayers.length) G.currentIdx = G.activePlayers[0];
+    else return false;
+    return true;
+  }
+
+  const player = G.players[G.currentIdx];
+  const cardsInHands = G.players.map(p => p.hand.length);
+  const tc = topCard(G);
+  const play = aiChoosePlay(
+    player.hand,
+    tc ? G.requiredCount : 1,
+    tc,
+    player.difficulty,
+    cardsInHands,
+    G.currentIdx
+  );
+
+  const result = play ? playCards(G, play) : passTurn(G);
+  if (result === 'game_over') return false;
+  return true;
+}
+
+// ── Game over ─────────────────────────────────────────────────────────
+
+function showGameOver() {
+  if (gameOverShown) return;
+  gameOverShown = true;
+
+  const n = G.players.length;
+  const medals = {1:'👑', 2:'⭐'};
+  const list = document.getElementById('ranking-list');
+  list.innerHTML = '';
+
+  G.finishedOrder.forEach((idx, pos) => {
+    const rank = pos + 1;
+    const p = G.players[idx];
+    const row = document.createElement('div');
+    row.className = 'ranking-row';
+    let medal = medals[rank] || (rank === n ? '💀' : `#${rank}`);
+    let title = rank===1 ? 'President' : rank===2 ? 'Vice-President' :
+                rank===n ? 'Peasant' : `Place ${rank}`;
+    row.innerHTML = `
+      <div class="rank-medal">${medal}</div>
+      <div>
+        <div class="rank-name">${p.name}</div>
+        <div class="rank-title">${title}</div>
+      </div>
+    `;
+    list.appendChild(row);
+  });
+
+  gameOverCountdown = 4;
+  updateGameOverCountdown();
+  showScreen('gameover-screen');
+}
+
+function updateGameOverCountdown() {
+  const subtitle = document.getElementById('gameover-game-num');
+  subtitle.textContent = `Game #${G.gameNumber} complete · next game in ${gameOverCountdown}s`;
+  if (gameOverCountdown <= 0) {
+    playAgain();
+    return;
+  }
+  gameOverCountdown--;
+  if (gameOverTimer) clearTimeout(gameOverTimer);
+  gameOverTimer = setTimeout(updateGameOverCountdown, 1000);
+}
+
+function clearTransitionTimers() {
+  if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+  if (tradeCountdownTimer) { clearTimeout(tradeCountdownTimer); tradeCountdownTimer = null; }
+  if (gameOverTimer) { clearTimeout(gameOverTimer); gameOverTimer = null; }
+}
+
+function playAgain() {
+  clearTransitionTimers();
+  gameOverShown = false;   // reset BEFORE transition
+  selectedCards = [];
+  const tradeResult = startNextGameWithTrade(G);
+
+  if (tradeResult) {
+    showTradeScreen(tradeResult);
+  } else {
+    showScreen('game-screen');
+    renderGame();
+    scheduleAI();
+  }
+}
+
+function goToMenu() {
+  clearTransitionTimers();
+  showScreen('setup-screen');
+  G = null;
+}
+
+// ── Trade screen ───────────────────────────────────────────────────────
+
+function showTradeScreen(trade) {
+  const rows = document.getElementById('trade-rows');
+  rows.innerHTML = '';
+
+  const makeRow = (giverName, receiverName, card) => {
+    const row = document.createElement('div');
+    row.className = 'trade-row';
+    const red = isRed(card.suit);
+    row.innerHTML = `
+      <div class="trade-player">${giverName}</div>
+      <div class="trade-arrow">→</div>
+      <div class="trade-card-label ${red?'red':'black'}">${cardLabel(card.rank,card.suit)}</div>
+      <div class="trade-arrow">→</div>
+      <div class="trade-player" style="text-align:right">${receiverName}</div>
+    `;
+    rows.appendChild(row);
+  };
+
+  makeRow(trade.peasantName, trade.presName, trade.peasantGives);
+  makeRow(trade.presName, trade.peasantName, trade.presGives);
+
+  tradeCountdown = 4;
+  updateTradeCountdown();
+  showScreen('trade-screen');
+}
+
+function updateTradeCountdown() {
+  document.getElementById('trade-countdown').textContent =
+    `Continuing automatically in ${tradeCountdown}s…`;
+  if (tradeCountdown <= 0) { tradeFinish(); return; }
+  tradeCountdown--;
+  tradeCountdownTimer = setTimeout(updateTradeCountdown, 1000);
+}
+
+function tradeFinish() {
+  clearTransitionTimers();
+  gameOverShown = false;
+  showScreen('game-screen');
+  renderGame();
+  if (G.phase === Phase.PLAYING) scheduleAI();
+}
+
+// ── Log overlay ──────────────────────────────────────────────────────
+
+function openLogOverlay() {
+  const body = document.getElementById('log-overlay-body');
+  body.innerHTML = '';
+  if (!G) return;
+  G.logs.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'log-entry' + (entry.highlight ? ' highlight' : '');
+    div.textContent = entry.msg;
+    body.appendChild(div);
+  });
+  document.getElementById('log-overlay').classList.add('open');
+  body.scrollTop = body.scrollHeight;
+}
+
+function closeLogOverlay() {
+  document.getElementById('log-overlay').classList.remove('open');
+}
+
+// ── Utilities ─────────────────────────────────────────────────────────
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function showMenu() {
+  if (confirm('Return to menu? Current game will be lost.')) goToMenu();
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────
+renderSetup();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => {
+      console.error('Service worker registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
