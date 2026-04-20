@@ -44,12 +44,20 @@
     font-family: 'DM Sans', sans-serif;
     background: var(--bg);
     color: var(--text);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
     user-select: none;
   }
 
   /* ── SCREENS ── */
-  .screen { display: none; flex-direction: column; height: 100vh; width: 100vw; overflow: hidden; }
+  .screen {
+    display: none;
+    flex-direction: column;
+    min-height: 100vh;
+    width: 100vw;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
   .screen.active { display: flex; }
 
   /* ══════════════════════════════════════════════
@@ -57,8 +65,10 @@
   ══════════════════════════════════════════════ */
   #setup-screen {
     background: linear-gradient(160deg, #0a1628 0%, #0d2040 60%, #0a3020 100%);
+    min-height: 100vh;
+    overflow-x: hidden;
     overflow-y: auto;
-    padding: 0 0 32px 0;
+    padding: 0 0 120px 0;
   }
 
   .setup-header {
@@ -83,7 +93,7 @@
     background: var(--surface);
     border-radius: var(--radius);
     border: 1px solid var(--border);
-    overflow: hidden;
+    overflow: visible;
   }
   .setup-section-title {
     background: var(--panel);
@@ -206,6 +216,46 @@
     transition: all 0.15s;
   }
   .start-btn:active { transform: scale(0.98); }
+
+  /* multiplayersetup */
+
+  .multiplayer-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 12px 14px 16px;
+}
+
+.mp-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.mp-row .type-btn {
+  flex: 1;
+  min-width: 0;
+  justify-content: center;
+}
+
+#mp-status,
+#mp-room-players {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  white-space: normal;
+  word-break: break-word;
+}
+
+#mp-status {
+  color: var(--text-dim);
+}
+
+#mp-room-players {
+  color: var(--text);
+  min-height: 20px;
+}
+
 
   /* ══════════════════════════════════════════════
      GAME SCREEN
@@ -890,10 +940,40 @@
     </div>
   </div>
 
-  <button class="start-btn" onclick="startGame()">Start Game ▶</button>
+  <div class="setup-section">
+  <div class="setup-section-title">Multiplayer</div>
+
+  <div class="multiplayer-stack">
+    <input id="mp-name" class="player-name-input" placeholder="Your nickname" maxlength="16">
+
+    <div class="mp-row">
+      <button class="type-btn human" onclick="createRoom()">Create Room</button>
+      <button class="type-btn ai" onclick="joinRoom()">Join Room</button>
+    </div>
+
+    <input id="mp-room-code" class="player-name-input" placeholder="Enter room code" maxlength="6" style="text-transform:uppercase;">
+
+    <div id="mp-status">Not connected to any room.</div>
+    <div id="mp-room-players"></div>
+
+    <div class="mp-row">
+      <button class="type-btn human" onclick="startMultiplayerGame()">Start Multiplayer</button>
+      <button class="type-btn ai" onclick="addAiPlayer()">Add AI</button>
+      <button class="type-btn" onclick="leaveRoom()">Leave</button>
+    </div>
+  </div>
+</div>
+
+<button class="start-btn" onclick="startGame()">Start Local Game ▶</button>
+
+
+
 </div>
 
 <!-- ══ GAME SCREEN ════════════════════════════════════════════════ -->
+
+
+
 <div id="game-screen" class="screen">
   <!-- Top bar (always visible) -->
   <div class="game-topbar">
@@ -933,7 +1013,7 @@
 
       <div class="hand-area">
         <div class="hand-header">
-          <div class="hand-title" id="hand-title">Your Hand</div>
+          <div class="hand-title" id="hand-title" style="color:green;">Your Hand DEBUG VERSION 5</div>
           <div class="hand-count" id="hand-count"></div>
         </div>
         <div class="hand-cards" id="hand-cards"></div>
@@ -997,12 +1077,631 @@
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getDatabase,
+    ref,
+    set,
+    get,
+    update,
+    remove,
+    onValue,
+    onDisconnect,
+    serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCcSg8QFoFlxEPbmDJK1ehbqUTp7GOyt2g",
+    authDomain: "president-card-game-51914.firebaseapp.com",
+    databaseURL: "https://president-card-game-51914-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "president-card-game-51914",
+    storageBucket: "president-card-game-51914.firebasestorage.app",
+    messagingSenderId: "540990293691",
+    appId: "1:540990293691:web:9e9ee0f199a09946684b9e",
+    measurementId: "G-NQM7PH7GT3"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  window.FB = {
+    db, ref, set, get, update, remove, onValue, onDisconnect, serverTimestamp
+  };
+</script>
+
+
+
+
+
 <script>
 'use strict';
+
+let MP = {
+  roomCode: null,
+  playerId: 'p_' + Math.random().toString(36).slice(2, 10),
+  playerName: '',
+  isHost: false,
+  roomUnsub: null,
+  roomData: null
+};
+
+function roomCodeRand() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let out = '';
+  for (let i = 0; i < 6; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  return out;
+}
+
+function getNickname() {
+  const val = (document.getElementById('mp-name')?.value || '').trim();
+  return val || 'Player';
+}
+
+function setMpStatus(msg) {
+  const el = document.getElementById('mp-status');
+  if (el) el.textContent = msg;
+}
+
+function renderRoomPlayers(playersObj = {}) {
+  const el = document.getElementById('mp-room-players');
+  if (!el) return;
+
+  const players = Object.values(playersObj);
+
+  players.sort((a, b) => {
+    const aj = a.joinedAt || 0;
+    const bj = b.joinedAt || 0;
+    return aj - bj;
+  });
+
+  if (!players.length) {
+    el.innerHTML = '';
+    return;
+  }
+
+  el.innerHTML = '<strong>Room players:</strong><br>' +
+    players.map((p, i) => {
+      const crown = p.host ? ' 👑' : '';
+      const bot = p.isBot ? ` 🤖${p.difficulty ? ' [' + p.difficulty + ']' : ''}` : '';
+      const removeBtn = (MP.isHost && p.isBot && MP.roomData?.status === 'lobby')
+        ? ` <button onclick="removeAiPlayer('${p.id}')" style="margin-left:8px; padding:2px 6px; font-size:0.72rem; border-radius:6px; border:1px solid #444; background:#2a1a1a; color:#fff; cursor:pointer;">Remove</button>`
+        : '';
+      return `${i + 1}. ${p.name}${crown}${bot}${removeBtn}`;
+    }).join('<br>');
+}
+
+async function createRoom() {
+  try {
+    if (!window.FB) {
+      showToast('Firebase not loaded');
+      return;
+    }
+
+    const name = getNickname();
+    MP.playerName = name;
+    MP.isHost = true;
+
+    let code = roomCodeRand();
+    const roomRef = FB.ref(FB.db, 'rooms/' + code);
+    const snap = await FB.get(roomRef);
+
+    if (snap.exists()) {
+      code = roomCodeRand();
+    }
+
+    MP.roomCode = code;
+
+    await FB.set(roomRef, {
+      code,
+      status: 'lobby',
+      hostId: MP.playerId,
+      createdAt: Date.now(),
+      players: {
+        [MP.playerId]: {
+          id: MP.playerId,
+          name,
+          host: true,
+          joinedAt: Date.now()
+        }
+      }
+    });
+
+    const meRef = FB.ref(FB.db, `rooms/${code}/players/${MP.playerId}`);
+    FB.onDisconnect(meRef).remove();
+
+    subscribeToRoom(code);
+    document.getElementById('mp-room-code').value = code;
+    setMpStatus(`Room created: ${code}`);
+    showToast(`Room ${code} created`);
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to create room');
+  }
+}
+
+async function joinRoom() {
+  try {
+    if (!window.FB) {
+      showToast('Firebase not loaded');
+      return;
+    }
+
+    const code = (document.getElementById('mp-room-code')?.value || '')
+      .trim()
+      .toUpperCase();
+
+    if (!code) {
+      showToast('Enter room code');
+      return;
+    }
+
+    const name = getNickname();
+    MP.playerName = name;
+    MP.isHost = false;
+
+    const roomRef = FB.ref(FB.db, 'rooms/' + code);
+    const snap = await FB.get(roomRef);
+
+    if (!snap.exists()) {
+      showToast('Room not found');
+      return;
+    }
+
+    const data = snap.val();
+    if (data.status !== 'lobby') {
+      showToast('Game already started');
+      return;
+    }
+
+    await FB.update(FB.ref(FB.db, `rooms/${code}/players`), {
+      [MP.playerId]: {
+        id: MP.playerId,
+        name,
+        host: false,
+        joinedAt: Date.now()
+      }
+    });
+
+    const meRef = FB.ref(FB.db, `rooms/${code}/players/${MP.playerId}`);
+    FB.onDisconnect(meRef).remove();
+
+    MP.roomCode = code;
+    subscribeToRoom(code);
+    setMpStatus(`Joined room: ${code}`);
+    showToast(`Joined ${code}`);
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to join room');
+  }
+}
+
+
+function nextBotName(playersObj = {}) {
+  const players = Object.values(playersObj);
+  let maxNum = 0;
+
+  players.forEach(p => {
+    if (p.isBot && /^Bot\s+(\d+)$/i.test(p.name || '')) {
+      const n = parseInt((p.name.match(/^Bot\s+(\d+)$/i) || [])[1], 10);
+      if (!isNaN(n) && n > maxNum) maxNum = n;
+    }
+  });
+
+  return `Bot ${maxNum + 1}`;
+}
+
+async function addAiPlayer() {
+  try {
+    if (!window.FB) {
+      showToast('Firebase not loaded');
+      return;
+    }
+
+    if (!MP.roomCode || !MP.roomData) {
+      showToast('Create or join a room first');
+      return;
+    }
+
+    if (!MP.isHost) {
+      showToast('Only host can add AI');
+      return;
+    }
+
+    if (MP.roomData.status !== 'lobby') {
+      showToast('Can only add AI before game starts');
+      return;
+    }
+
+    const currentPlayers = MP.roomData.players || {};
+    const count = Object.keys(currentPlayers).length;
+    if (count >= 8) {
+      showToast('Maximum 8 players');
+      return;
+    }
+
+    const botId = 'bot_' + Math.random().toString(36).slice(2, 8);
+    const botName = nextBotName(currentPlayers);
+
+    await FB.update(FB.ref(FB.db, `rooms/${MP.roomCode}/players`), {
+      [botId]: {
+        id: botId,
+        name: botName,
+        host: false,
+        isBot: true,
+        difficulty: 'Medium',
+        joinedAt: Date.now()
+      }
+    });
+
+    showToast(`${botName} added`);
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to add AI');
+  }
+}
+
+async function removeAiPlayer(botId) {
+  try {
+    if (!window.FB) {
+      showToast('Firebase not loaded');
+      return;
+    }
+
+    if (!MP.roomCode || !MP.roomData) {
+      showToast('Not connected to a room');
+      return;
+    }
+
+    if (!MP.isHost) {
+      showToast('Only host can remove AI');
+      return;
+    }
+
+    if (MP.roomData.status !== 'lobby') {
+      showToast('Can only remove AI before game starts');
+      return;
+    }
+
+    const bot = MP.roomData.players?.[botId];
+    if (!bot || !bot.isBot) {
+      showToast('AI bot not found');
+      return;
+    }
+
+    await FB.remove(FB.ref(FB.db, `rooms/${MP.roomCode}/players/${botId}`));
+    showToast(`${bot.name || 'Bot'} removed`);
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to remove AI');
+  }
+}
+
+
+
+
+async function leaveRoom() {
+  try {
+    if (!MP.roomCode || !window.FB) {
+      setMpStatus('Not connected to any room.');
+      renderRoomPlayers({});
+      return;
+    }
+
+    const code = MP.roomCode;
+    const isHost = MP.isHost;
+
+    await FB.remove(FB.ref(FB.db, `rooms/${code}/players/${MP.playerId}`));
+
+    if (isHost) {
+      const snap = await FB.get(FB.ref(FB.db, `rooms/${code}/players`));
+      const players = snap.exists() ? snap.val() : null;
+      const ids = players ? Object.keys(players) : [];
+
+      if (!ids.length) {
+        await FB.remove(FB.ref(FB.db, `rooms/${code}`));
+      } else {
+        const newHostId = ids[0];
+        await FB.update(FB.ref(FB.db, `rooms/${code}`), {
+          hostId: newHostId
+        });
+        await FB.update(FB.ref(FB.db, `rooms/${code}/players/${newHostId}`), {
+          host: true
+        });
+      }
+    }
+
+    if (MP.roomUnsub) MP.roomUnsub();
+    MP.roomCode = null;
+    MP.roomData = null;
+    MP.isHost = false;
+    setMpStatus('Not connected to any room.');
+    renderRoomPlayers({});
+    showToast('Left room');
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to leave room');
+  }
+}
+
+function subscribeToRoom(code) {
+  if (MP.roomUnsub) MP.roomUnsub();
+
+  const roomRef = FB.ref(FB.db, `rooms/${code}`);
+  MP.roomUnsub = FB.onValue(roomRef, (snap) => {
+    const data = snap.val();
+    MP.roomData = data;
+
+    if (!data) {
+      setMpStatus('Room closed');
+      renderRoomPlayers({});
+      MP.roomCode = null;
+      return;
+    }
+
+    MP.isHost = data.hostId === MP.playerId;
+    const count = data.players ? Object.keys(data.players).length : 0;
+    setMpStatus(`Room ${code} · ${count} player(s) · ${MP.isHost ? 'You are host' : 'Guest'} · status: ${data.status || 'lobby'}`);
+    renderRoomPlayers(data.players || {});
+
+    if ((data.status === 'playing' || data.status === 'game_over') && data.gameState) {
+      const ver = Number(data.updatedAt || 0);
+
+      if (ver && ver === _lastSeenUpdatedAt) {
+        return;
+      }
+      _lastSeenUpdatedAt = ver;
+
+      launchMultiplayerGameFromRoom(data);
+
+      if (data.status === 'game_over' && G && G.phase === Phase.GAME_OVER) {
+        showGameOver();
+      }
+    }
+  });
+}
+
+
+
+
+function buildMultiplayerPlayerDefs(roomData) {
+  const playersObj = roomData?.players || {};
+  const players = Object.values(playersObj);
+
+  players.sort((a, b) => (a.joinedAt || 0) - (b.joinedAt || 0));
+
+  return players.map((p) => ({
+    name: p.name || 'Player',
+    isHuman: !p.isBot,
+    difficulty: p.difficulty || 'Medium',
+    playerId: String(p.id),
+    isBot: !!p.isBot
+  }));
+}
+
+
+
+
+async function startMultiplayerGame() {
+  try {
+    if (!window.FB) {
+      showToast('Firebase not loaded');
+      return;
+    }
+
+    if (!MP.roomCode || !MP.roomData) {
+      showToast('Create or join a room first');
+      return;
+    }
+
+    if (!MP.isHost) {
+      showToast('Only host can start multiplayer game');
+      return;
+    }
+
+    const roomRef = FB.ref(FB.db, `rooms/${MP.roomCode}`);
+    const playerDefs = buildMultiplayerPlayerDefs(MP.roomData);
+
+    if (playerDefs.length < 2) {
+      showToast('Need at least 2 players');
+      return;
+    }
+
+    const nDecks = parseInt(document.getElementById('deck-count').value || '1', 10);
+
+    const newGame = createGame(playerDefs, nDecks);
+    startNewGame(newGame);
+
+    G = newGame;
+    selectedCards = [];
+    gameOverShown = false;
+
+    await FB.update(roomRef, {
+      status: 'playing',
+      gameConfig: { nDecks },
+      gameState: JSON.parse(JSON.stringify(newGame)),
+      startedAt: Date.now(),
+      updatedAt: Date.now()
+    });
+
+    showToast('Multiplayer game started');
+  } catch (e) {
+    console.error(e);
+    showToast('Failed to start multiplayer game');
+  }
+}
+
+function launchMultiplayerGameFromRoom(roomData) {
+  if (!roomData?.gameState) return;
+
+  G = JSON.parse(JSON.stringify(roomData.gameState));
+
+  // Normalize missing fields after Firebase round-trip
+  G.players = Array.isArray(G.players) ? G.players : [];
+  G.players.forEach((p, i) => {
+    p.hand = Array.isArray(p.hand) ? p.hand : [];
+    if (p.finishRank === undefined) p.finishRank = null;
+    if (p.idx === undefined) p.idx = i;
+  });
+
+  G.tablePile = Array.isArray(G.tablePile) ? G.tablePile : [];
+  G.activePlayers = Array.isArray(G.activePlayers) ? G.activePlayers : [];
+  G.finishedOrder = Array.isArray(G.finishedOrder) ? G.finishedOrder : [];
+  G.logs = Array.isArray(G.logs) ? G.logs : [];
+  if (typeof G.requiredCount !== 'number') G.requiredCount = 1;
+  if (typeof G.currentIdx !== 'number') G.currentIdx = 0;
+  if (!G.phase) G.phase = Phase.PLAYING;
+
+  const myIdx = getMyPlayerIndex();
+  const myP   = myIdx >= 0 ? G.players[myIdx] : null;
+  console.log('launchMultiplayerGameFromRoom', {
+    myPlayerId: MP.playerId,
+    myPlayerFound: !!myP,
+    myPlayerName: myP?.name,
+    myHandCount: myP?.hand?.length,
+    currentIdx: G.currentIdx,
+    currentPlayer: G.players[G.currentIdx]?.name,
+    tablePileLen: G.tablePile.length,
+    players: G.players.map(p => ({
+      name: p.name,
+      playerId: p.playerId,
+      handCount: p.hand?.length
+    }))
+  });
+
+  gameOverShown = false;
+  selectedCards = [];
+
+  showScreen('game-screen');
+  renderGame();
+
+  if (aiTimer) { clearTimeout(aiTimer); aiTimer = null; }
+
+  if (MP.isHost && !_multiplayerAiRunning && G.phase === Phase.PLAYING) {
+    const cur = G.players[G.currentIdx];
+    if (cur && cur.isBot) {
+      scheduleMultiplayerAI();
+    }
+  }
+}
+
+
+
+
+
+function scheduleMultiplayerAI() {
+  if (!MP.isHost || !G || G.phase !== Phase.PLAYING) return;
+  if (_multiplayerAiRunning) return;
+
+  const cur = G.players[G.currentIdx];
+  if (!cur || !cur.isBot) return;
+
+  _multiplayerAiRunning = true;
+  setTimeout(runMultiplayerAI, 250);
+}
+
+async function runMultiplayerAI() {
+  try {
+    let safety = 0;
+
+    while (
+      MP.isHost &&
+      G &&
+      G.phase === Phase.PLAYING &&
+      G.players[G.currentIdx] &&
+      G.players[G.currentIdx].isBot &&
+      safety < 50
+    ) {
+      const player = G.players[G.currentIdx];
+      const tc = topCard(G);
+      const cardsInHands = G.players.map(p => (p.hand || []).length);
+
+      const play = aiChoosePlay(
+        player.hand || [],
+        tc ? G.requiredCount : 1,
+        tc,
+        player.difficulty || 'Medium',
+        cardsInHands,
+        G.currentIdx
+      );
+
+      const result = play ? playCards(G, play) : passTurn(G);
+
+      await pushSharedGameState();
+
+      if (result === 'game_over') {
+        renderGame();
+        showGameOver();
+        break;
+      }
+
+      safety++;
+    }
+
+    renderGame();
+  } catch (err) {
+    console.error('runMultiplayerAI failed', err);
+  } finally {
+    _multiplayerAiRunning = false;
+  }
+}
+
+
+
+
+
+function isMultiplayerMode() {
+  return !!(MP.roomCode && MP.roomData && G);
+}
+
+function serializeGame(g) {
+  return JSON.parse(JSON.stringify(g));
+}
+
+function deserializeGame(raw) {
+  return JSON.parse(JSON.stringify(raw));
+}
+
+async function pushSharedGameState() {
+  if (!MP.roomCode || !window.FB || !G) return;
+
+  await FB.update(FB.ref(FB.db, `rooms/${MP.roomCode}`), {
+    status: G.phase === Phase.GAME_OVER ? 'game_over' : 'playing',
+    gameState: serializeGame(G),
+    updatedAt: Date.now()
+  });
+}
+
+function getMyPlayerIndex() {
+  if (!G || !G.players) return -1;
+  return G.players.findIndex(p => String(p.playerId) === String(MP.playerId));
+}
+
+function getMyPlayer() {
+  let idx = G.players.findIndex(p => String(p.playerId) === String(MP.playerId));
+
+  if (idx === -1) {
+    console.warn('PlayerId mismatch — falling back to name match', {
+      myPlayerId: MP.playerId,
+      myPlayerName: MP.playerName,
+      players: G.players.map(p => ({
+        name: p.name,
+        playerId: p.playerId,
+        handCount: p.hand?.length
+      }))
+    });
+
+    idx = G.players.findIndex(p => p.name === MP.playerName);
+  }
+
+  return idx >= 0 ? G.players[idx] : null;
+}
 
 // ═══════════════════════════════════════════════════════════════════
 //  CARDS.JS
 // ═══════════════════════════════════════════════════════════════════
+
+
 const SUITS = { CLUBS:0, SPADES:1, DIAMONDS:2, HEARTS:3 };
 const SUIT_SYM  = ['♣','♠','♦','♥'];
 const SUIT_RED  = [false, false, true, true];
@@ -1206,18 +1905,26 @@ function hardStartPlay(hand, cardsInHands, myPos) {
 const Phase = { SETUP:'setup', PLAYING:'playing', GAME_OVER:'game_over' };
 
 let G = null;  // Global game state
+let _lastSeenUpdatedAt = 0;
+let _multiplayerAiRunning = false;
+
+
+
 
 function createGame(playerDefs, nDecks) {
   return {
-    players: playerDefs.map((p, i) => ({
-      name: p.name,
-      isHuman: p.isHuman,
-      difficulty: p.difficulty || 'Medium',
-      hand: [],
-      finishRank: null,
-      idx: i,
+    
+   players: playerDefs.map((p, i) => ({
+    name: p.name,
+    isHuman: p.isHuman,
+    difficulty: p.difficulty || 'Medium',
+    playerId: p.playerId || null,
+    isBot: !!p.isBot,
+    hand: [],
+    finishRank: null,
+    idx: i,
     })),
-    nDecks,
+  nDecks,
     phase: Phase.SETUP,
     gameNumber: 1,
     // Round state
@@ -1233,9 +1940,22 @@ function createGame(playerDefs, nDecks) {
   };
 }
 
-function topPlay(g) { return g.tablePile.length ? g.tablePile[g.tablePile.length-1] : null; }
-function topCard(g) { const tp = topPlay(g); return tp ? tp.reduce((best,c) =>
-  sortKey(c.rank,c.suit) > sortKey(best.rank,best.suit) ? c : best, tp[0]) : null; }
+
+function topPlay(g) {
+  const pile = g?.tablePile || [];
+  return pile.length ? pile[pile.length - 1] : null;
+}
+
+function topCard(g) {
+  const tp = topPlay(g);
+  return tp && tp.length
+    ? tp.reduce((best, c) =>
+        sortKey(c.rank, c.suit) > sortKey(best.rank, best.suit) ? c : best, tp[0])
+    : null;
+}
+
+
+
 
 function presidentIdx(g) { return g.finishedOrder.length ? g.finishedOrder[0] : null; }
 function peasantIdx(g)   { return g.finishedOrder.length >= 2 ? g.finishedOrder[g.finishedOrder.length-1] : null; }
@@ -1535,12 +2255,21 @@ function startGame() {
 
 function renderGame() {
   if (!G) return;
-  renderTopBar();
-  renderPlayersStrip();
-  renderTable();
-  renderHand();
-  renderButtons();
-  renderLog();
+
+  try {
+    renderTopBar();
+    renderPlayersStrip();
+    renderTable();
+    renderHand();
+    renderButtons();
+    renderLog();
+  } catch (err) {
+    console.error('renderGame crashed', err);
+    const handTitle = document.getElementById('hand-title');
+    const handCount = document.getElementById('hand-count');
+    if (handTitle) handTitle.textContent = 'RENDER GAME ERROR 2';
+    if (handCount) handCount.textContent = String(err?.message || err);
+  }
 }
 
 function renderTopBar() {
@@ -1556,7 +2285,7 @@ function renderPlayersStrip() {
     if (p.finishRank === 1)    return '👑';
     if (p.finishRank === 2)    return '⭐';
     if (p.finishRank === last)  return '💀';
-    if (p.finishRank !== null) return `#${p.finishRank}`;
+    if (p.finishRank != null) return `#${p.finishRank}`;
     return '';
   }
 
@@ -1571,7 +2300,7 @@ function renderPlayersStrip() {
     const badge = getBadge(p);
     chip.innerHTML = `
       <div class="chip-name">${p.name}</div>
-      <div class="chip-cards">${p.hand.length} cards</div>
+      <div class="chip-cards">${(p.hand || []).length} cards</div>
       ${badge ? `<div class="chip-badge">${badge}</div>` : ''}
     `;
     strip.appendChild(chip);
@@ -1591,7 +2320,7 @@ function renderPlayersStrip() {
     const diff = !p.isHuman ? ` <span style="font-size:0.65rem;color:var(--text-dim)">[${p.difficulty[0]}]</span>` : '';
     div.innerHTML = `
       <div class="sidebar-pname">${icon} ${p.name}${diff}</div>
-      <div class="sidebar-pcards">${p.hand.length} cards</div>
+      <div class="sidebar-pcards">${(p.hand || []).length} cards</div>
       ${badge ? `<div class="sidebar-pbadge">${badge}</div>` : ''}
     `;
     sidebar.appendChild(div);
@@ -1603,7 +2332,9 @@ function renderTable() {
   const tableInfo  = document.getElementById('table-info');
   tableCards.innerHTML = '';
 
-  const tp = topPlay(G);
+  const pile = Array.isArray(G?.tablePile) ? G.tablePile : [];
+  const tp = pile.length ? pile[pile.length - 1] : null;
+
   if (!tp) {
     if (G.lastPlayedBy !== null) {
       tableCards.innerHTML = `<span class="table-empty">7️⃣ Table reset — play any card</span>`;
@@ -1617,39 +2348,80 @@ function renderTable() {
     return;
   }
 
-  // Show last 4 plays
-  const showPiles = G.tablePile.slice(-4);
+  const showPiles = pile.slice(-4);
   showPiles.forEach(play => {
     const group = document.createElement('div');
     group.style.cssText = 'display:flex;gap:3px;align-items:center;';
-    play.forEach(c => group.appendChild(makeCardEl(c.rank, c.suit, false, true)));
+    (play || []).forEach(c => group.appendChild(makeCardEl(c.rank, c.suit, false, true)));
     tableCards.appendChild(group);
   });
 
-  tableInfo.textContent = `Required: ${G.requiredCount} card(s)`;
+  tableInfo.textContent = `Required: ${G.requiredCount || 1} card(s)`;
   tableInfo.className = 'table-info';
 }
 
+
+
 function renderHand() {
-  const current = G.players[G.currentIdx];
-  const isHumanTurn = current.isHuman && G.phase === Phase.PLAYING;
-
-  document.getElementById('hand-title').textContent = `${current.name}'s Hand`;
-  document.getElementById('hand-count').textContent = `(${current.hand.length} cards)`;
-
+  const handTitle = document.getElementById('hand-title');
+  const handCount = document.getElementById('hand-count');
   const handCards = document.getElementById('hand-cards');
+
+  // Prove renderHand is running
+  handTitle.textContent = 'HAND RENDER STARTED';
+  handCount.textContent = 'debug...';
   handCards.innerHTML = '';
 
-  current.hand.forEach(card => {
-    const el = makeCardEl(card.rank, card.suit, isHumanTurn);
-    const isSel = selectedCards.some(c => cardsEqual(c, card));
-    if (isSel) el.classList.add('selected');
-    if (isHumanTurn) {
-      el.addEventListener('click', () => toggleCard(card));
+  try {
+    let player = null;
+
+    if (isMultiplayerMode()) {
+      handTitle.textContent = 'Your Hand';
+      player = getMyPlayer();
+    } else {
+      player = G.players[G.currentIdx];
+      handTitle.textContent = `${player.name}'s Hand`;
     }
-    handCards.appendChild(el);
-  });
+
+    if (!player) {
+      handCount.textContent = '(player not found)';
+      console.log('renderHand: player not found', {
+        myPlayerId: MP.playerId,
+        myPlayerName: MP.playerName,
+        players: G?.players?.map(p => ({
+          name: p.name,
+          playerId: p.playerId,
+          handCount: p.hand?.length
+        }))
+      });
+      return;
+    }
+
+    const isMyTurn = G.phase === Phase.PLAYING && String(G.players[G.currentIdx]?.playerId) === String(MP.playerId);
+    const isHumanTurn = isMultiplayerMode()
+      ? isMyTurn
+      : (player.isHuman && G.phase === Phase.PLAYING);
+
+    const safeHand = player.hand || [];
+handCount.textContent = `me=${MP.playerId} | player=${player.playerId} | cards=${safeHand.length}`;
+
+safeHand.forEach(card => {
+      const el = makeCardEl(card.rank, card.suit, isHumanTurn);
+      const isSel = selectedCards.some(c => cardsEqual(c, card));
+      if (isSel) el.classList.add('selected');
+      if (isHumanTurn) {
+        el.addEventListener('click', () => toggleCard(card));
+      }
+      handCards.appendChild(el);
+    });
+  } catch (err) {
+    handTitle.textContent = 'HAND ERROR';
+    handCount.textContent = String(err?.message || err);
+    console.error('renderHand crashed', err);
+  }
 }
+
+
 
 function makeCardEl(rank, suit, interactive=false, isTable=false) {
   const el = document.createElement('div');
@@ -1663,10 +2435,18 @@ function makeCardEl(rank, suit, interactive=false, isTable=false) {
 }
 
 function renderButtons() {
-  const isHuman = G.phase === Phase.PLAYING && G.players[G.currentIdx].isHuman;
-  document.getElementById('btn-play').disabled  = !isHuman;
-  document.getElementById('btn-pass').disabled  = !isHuman;
-  document.getElementById('btn-clear').disabled = !isHuman;
+  let canAct = false;
+
+  if (isMultiplayerMode()) {
+    const current = G.players[G.currentIdx];
+    canAct = G.phase === Phase.PLAYING && current && current.playerId === MP.playerId;
+  } else {
+    canAct = G.phase === Phase.PLAYING && G.players[G.currentIdx].isHuman;
+  }
+
+  document.getElementById('btn-play').disabled  = !canAct;
+  document.getElementById('btn-pass').disabled  = !canAct;
+  document.getElementById('btn-clear').disabled = !canAct;
 }
 
 function renderLog() {
@@ -1696,14 +2476,61 @@ function toggleCard(card) {
 
 // ── Actions ──────────────────────────────────────────────────────────
 
-function onPlay() {
-  if (!selectedCards.length) { showToast('Select cards to play'); return; }
+async function onPlay() {
+  if (!selectedCards.length) {
+    showToast('Select cards to play');
+    return;
+  }
+
+  if (isMultiplayerMode()) {
+    const current = G.players[G.currentIdx];
+    if (!current || current.playerId !== MP.playerId) {
+      showToast('Not your turn');
+      return;
+    }
+
+    const result = playCards(G, selectedCards);
+    selectedCards = [];
+
+    if (typeof result === 'string' && !['ok','queen_wins','unbeatable','round_end','seven_played','game_over'].includes(result)) {
+      showToast(result);
+      renderGame();
+      return;
+    }
+
+    await pushSharedGameState();
+    renderGame();
+
+    if (result === 'game_over') { showGameOver(); return; }
+    // If next turn is a bot, host drives it
+    if (MP.isHost) scheduleMultiplayerAI();
+    return;
+  }
+
   const result = playCards(G, selectedCards);
   selectedCards = [];
   handleResult(result);
 }
 
-function onPass() {
+async function onPass() {
+  if (isMultiplayerMode()) {
+    const current = G.players[G.currentIdx];
+    if (!current || current.playerId !== MP.playerId) {
+      showToast('Not your turn');
+      return;
+    }
+
+    const result = passTurn(G);
+    selectedCards = [];
+
+    await pushSharedGameState();
+    renderGame();
+
+    if (result === 'game_over') { showGameOver(); return; }
+    if (MP.isHost) scheduleMultiplayerAI();
+    return;
+  }
+
   const result = passTurn(G);
   selectedCards = [];
   handleResult(result);
@@ -1740,22 +2567,26 @@ function handleResult(result) {
 
 // ── Pass phone flow ───────────────────────────────────────────────────
 
+
 function checkPassPhone() {
+  if (isMultiplayerMode()) return;
+
   if (G.phase === Phase.GAME_OVER) { showGameOver(); return; }
   if (!G.players[G.currentIdx].isHuman) {
     scheduleAI();
     return;
   }
-  // It's a human's turn — do we need to pass the phone?
-  const humans = G.players.filter(p => p.isHuman);
-  if (humans.length <= 1) return;  // Only one human, no need to pass
 
-  // Show pass prompt
+  const humans = G.players.filter(p => p.isHuman);
+  if (humans.length <= 1) return;
+
   const p = G.players[G.currentIdx];
   document.getElementById('pass-prompt-text').textContent =
     `It's ${p.name}'s turn. Hand the phone to ${p.name}.`;
   document.getElementById('pass-prompt').style.display = 'flex';
 }
+
+
 
 function dismissPassPrompt() {
   document.getElementById('pass-prompt').style.display = 'none';
@@ -1764,7 +2595,39 @@ function dismissPassPrompt() {
 
 // ── AI loop ──────────────────────────────────────────────────────────
 
+// ── Multiplayer AI (host-driven) ─────────────────────────────────
+
+function scheduleMultiplayerAI() {
+  if (!MP.isHost) return;
+  if (!G || G.phase !== Phase.PLAYING) return;
+  const cur = G.players[G.currentIdx];
+  if (!cur || !cur.isBot) return;
+  setTimeout(runMultiplayerAITurn, 600);
+}
+
+async function runMultiplayerAITurn() {
+  if (!MP.isHost || !G || G.phase !== Phase.PLAYING) return;
+
+  let steps = 0;
+  while (G.phase === Phase.PLAYING && steps < 50) {
+    const cur = G.players[G.currentIdx];
+    if (!cur || !cur.isBot) break;   // human turn — stop and push
+    if (!doOneAIStep()) break;
+    steps++;
+  }
+
+  // Push updated state to Firebase so all clients see the moves
+  await pushSharedGameState();
+  renderGame();
+
+  if (G.phase === Phase.GAME_OVER) {
+    showGameOver();
+  }
+}
+
 function scheduleAI() {
+  if (isMultiplayerMode()) return;
+
   if (aiTimer) clearTimeout(aiTimer);
   if (G.phase !== Phase.PLAYING) return;
   if (G.players[G.currentIdx].isHuman) return;
